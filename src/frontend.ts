@@ -1,10 +1,10 @@
-import { containerInterning, toBackendValue } from "./conversion";
-import { type Branded } from "./utils/brand";
+import { containerInterning, toBackendValue } from "./conversion.js";
+import { type Branded } from "./utils/brand.js";
 import {
   sign as signBackend,
   verify as verifyBackend,
-} from "./backends/eddsa_signed_pod";
-import { generateKeyPair } from "./utils/test";
+} from "./backends/eddsa_signed_pod.js";
+import { generateKeyPair } from "./utils/test.js";
 
 export type Scalar = string | bigint;
 export type Recursive<T> =

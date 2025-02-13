@@ -1,6 +1,6 @@
 import { sha256 } from "js-sha256";
-import { POD2Set, POD2Array, POD2Dictionary } from "./containers/containers";
-import type { ContainerValue, Value } from "./frontend";
+import { POD2Set, POD2Array, POD2Dictionary } from "./containers/containers.js";
+import type { ContainerValue, Value } from "./frontend.js";
 
 export const containerInterning = new WeakMap<
   ContainerValue,

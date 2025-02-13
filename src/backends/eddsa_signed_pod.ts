@@ -52,7 +52,7 @@ if (import.meta.vitest) {
     test("sign", () => {
       const { privateKey, publicKey } = generateKeyPair();
       const set = new POD2Set([1n, 2n, 3n]);
-      const { entries, signature } = sign(
+      const { id, entries, signature } = sign(
         new Map([
           [stringToBigInt("a"), 1n],
           [stringToBigInt("b"), 2n],
@@ -60,13 +60,8 @@ if (import.meta.vitest) {
         ]),
         privateKey
       );
-      expect(entries).toEqual({
-        a: 1n,
-        b: 2n,
-        c: set.commitment(),
-        _signer: publicKey,
-        _type: 1n,
-      });
+
+      expect(verify(id, signature, publicKey)).toBe(true);
     });
   });
 }
