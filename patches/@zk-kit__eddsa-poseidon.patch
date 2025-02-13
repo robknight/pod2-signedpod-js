@@ -1,0 +1,15 @@
+diff --git a/dist/index.js b/dist/index.js
+index d674bd624148d0eff2b43809fb0d9af2a21cb7b3..511bc28887d0dbcea407bd261c8eba01730f844c 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -15,7 +15,9 @@ import * as scalar from '@zk-kit/utils/scalar';
+ import { Buffer as Buffer$1 } from 'buffer';
+ import { poseidon5 } from 'poseidon-lite/poseidon5';
+ import { isArray, isBigNumber, isObject, isBigNumberish } from '@zk-kit/utils/type-checks';
+-import { blake2bInit, blake2bUpdate, blake2bFinal } from 'blakejs';
++import blakejs from 'blakejs';
++
++const { blake2bInit, blake2bUpdate, blake2bFinal } = blakejs;
+ 
+ /**
+  * Copyright
