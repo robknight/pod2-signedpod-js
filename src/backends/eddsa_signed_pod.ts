@@ -22,16 +22,21 @@ interface EdDSAPodSignResult {
 }
 
 export function sign(entries: PODEntryMap, privateKey: string): EdDSAPodSignResult {
+  const dict = new POD2Dictionary(entries);
+  const root = dict.commitment();
+
+ // TODO we could do some interning here, if we already have an instance of
+ // this Pod in memory then we could return it from a cache. It doesn't save
+ // any work but might save some memory.
+
+  const signedMessage = signMessage(Buffer.from(privateKey, "hex"), root);
+  const signature = packSignature(signedMessage);
+  const signatureHex = signature.toString("hex");
+
   const publicKey = derivePublicKey(Buffer.from(privateKey, "hex"));
   const publicKeyHex = leBigIntToBuffer(packPublicKey(publicKey)).toString(
     "hex"
   );
-
-  const dict = new POD2Dictionary(entries);
-  const root = dict.commitment();
-  const signedMessage = signMessage(Buffer.from(privateKey, "hex"), root);
-  const signature = packSignature(signedMessage);
-  const signatureHex = signature.toString("hex");
 
   return { signature: signatureHex, signer: publicKeyHex, id: root };
 }
@@ -45,6 +50,7 @@ export function verify(id: bigint, signature: string, publicKey: string): boolea
   
   return verifySignature(id, unpackedSignature, unpackedPublicKey);
 }
+
 
 if (import.meta.vitest) {
   const { test, expect, describe } = import.meta.vitest;

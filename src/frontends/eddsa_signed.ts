@@ -11,6 +11,7 @@ import { deepFreeze } from "deep-freeze-es6";
 import { derivePublicKey, packPublicKey } from "@zk-kit/eddsa-poseidon";
 import { leBigIntToBuffer } from "@zk-kit/utils";
 import type { Evaluate } from "../utils/types.js";
+import { Buffer } from "buffer";
 
 export type Scalar = string | bigint;
 export type Recursive<T> =
@@ -94,11 +95,14 @@ export function sign<E extends Entries>(
 
 export function verify(pod: EdDSAPodData<Entries>): boolean {
   const rootHash = toBackendValue(pod.entries);
+  if (rootHash !== pod.id) {
+    return false;
+  }
   return verifyBackend(rootHash, pod.signature, pod.signer);
 }
 
 if (import.meta.vitest) {
-  const { test, describe, expect } = import.meta.vitest;
+  const { test, describe, expect, bench } = import.meta.vitest;
 
   function getCommitment(value: ContainerValue): bigint {
     if (containerInterning.has(value)) {
