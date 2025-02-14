@@ -8,6 +8,6 @@ export function generateKeyPair(): { privateKey: string; publicKey: string } {
   const publicKey = derivePublicKey(privateKey);
   return {
     privateKey: uint8ArrayToHex(privateKey),
-    publicKey: uint8ArrayToHex(leBigIntToBuffer(packPublicKey(publicKey))),
+    publicKey: uint8ArrayToHex(leBigIntToBuffer(packPublicKey(publicKey)))
   };
 }

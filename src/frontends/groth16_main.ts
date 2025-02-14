@@ -2,7 +2,7 @@ import {
   sign,
   type EdDSAPodData,
   type Entries,
-  type EntryValue,
+  type EntryValue
 } from "./eddsa_signed.js";
 import { generateKeyPair } from "../utils/test.js";
 import {
@@ -13,7 +13,7 @@ import {
   AnchoredKey,
   Entry,
   Origin,
-  POD_CLASS_SIGNED,
+  POD_CLASS_SIGNED
 } from "./shared.js";
 
 interface Groth16MainPod {
@@ -90,13 +90,13 @@ class MainPodBuilder {
       case "NewEntry":
         statement = {
           nativeStatement: "ValueOf",
-          args: this.#op_arg_entries(isPublic, args),
+          args: this.#op_arg_entries(isPublic, args)
         };
         break;
       case "EqualFromEntries":
         statement = {
           nativeStatement: "Equal",
-          args: this.#op_arg_entries(isPublic, args),
+          args: this.#op_arg_entries(isPublic, args)
         };
         break;
       default:
@@ -133,7 +133,7 @@ if (import.meta.vitest) {
       builder.addPublicOperation(
         new Operation("EqualFromEntries", [
           new AnchoredKey(new Origin(POD_CLASS_SIGNED, pod.id), "a"),
-          1n,
+          1n
         ])
       );
       builder.print();

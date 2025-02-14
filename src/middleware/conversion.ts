@@ -19,7 +19,10 @@ function toBackendArray(array: EntryValue[]): POD2Array {
 
 function toBackendDictionary(dict: Record<string, EntryValue>): POD2Dictionary {
   const values = new Map(
-    Object.entries(dict).map(([key, value]) => [toBackendValue(key), toBackendValue(value)])
+    Object.entries(dict).map(([key, value]) => [
+      toBackendValue(key),
+      toBackendValue(value)
+    ])
   );
   return new POD2Dictionary(values);
 }

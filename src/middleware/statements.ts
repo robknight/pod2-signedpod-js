@@ -11,7 +11,7 @@ export const NativeStatement = {
   NotContains: 7,
   SumOf: 8,
   ProductOf: 9,
-  MaxOf: 10,
+  MaxOf: 10
 } as const;
 
 export const NativeOperation = {
@@ -30,7 +30,7 @@ export const NativeOperation = {
   RenameContainedBy: 12,
   SumOf: 13,
   ProductOf: 14,
-  MaxOf: 15,
+  MaxOf: 15
 } as const;
 
 class AnchoredKey {
@@ -46,10 +46,13 @@ class AnchoredKey {
 type StatementArg = "None" | Value | AnchoredKey;
 
 class Statement {
-  nativeStatement: keyof typeof NativeStatement; 
+  nativeStatement: keyof typeof NativeStatement;
   args: StatementArg[];
 
-  constructor(nativeStatement: keyof typeof NativeStatement, args: StatementArg[]) {
+  constructor(
+    nativeStatement: keyof typeof NativeStatement,
+    args: StatementArg[]
+  ) {
     this.nativeStatement = nativeStatement;
     this.args = args;
   }
@@ -61,9 +64,11 @@ class Operation {
   nativeOperation: keyof typeof NativeOperation;
   args: OperationArg[];
 
-  constructor(nativeOperation: keyof typeof NativeOperation, args: OperationArg[]) {
+  constructor(
+    nativeOperation: keyof typeof NativeOperation,
+    args: OperationArg[]
+  ) {
     this.nativeOperation = nativeOperation;
     this.args = args;
   }
 }
-

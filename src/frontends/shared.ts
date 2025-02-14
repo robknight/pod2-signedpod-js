@@ -1,4 +1,7 @@
-import type { NativeOperation, NativeStatement } from "../middleware/statements.js";
+import type {
+  NativeOperation,
+  NativeStatement
+} from "../middleware/statements.js";
 import type { EntryValue } from "./eddsa_signed.js";
 
 interface Params {
@@ -67,7 +70,6 @@ export type OperationArg =
   | AnchoredKey /* Key */
   | Value /* Literal */
   | Entry;
-
 
 export class Operation {
   nativeOperation: keyof typeof NativeOperation; // some kind of enum

@@ -1,10 +1,10 @@
 import {
   containerInterning,
-  toBackendValue,
+  toBackendValue
 } from "../middleware/conversion.js";
 import {
   sign as signBackend,
-  verify as verifyBackend,
+  verify as verifyBackend
 } from "../backends/eddsa_signed_pod.js";
 import { generateKeyPair } from "../utils/test.js";
 import { deepFreeze } from "deep-freeze-es6";
@@ -79,7 +79,7 @@ export function sign<E extends Entries>(
   const entriesToSign = new Map(
     Object.entries(clonedEntries).map(([key, value]) => [
       toBackendValue(key),
-      toBackendValue(value),
+      toBackendValue(value)
     ])
   );
 
@@ -89,7 +89,7 @@ export function sign<E extends Entries>(
     signature,
     signer,
     id,
-    entries: clonedEntries,
+    entries: clonedEntries
   };
 }
 
@@ -129,11 +129,11 @@ if (import.meta.vitest) {
             sit: {
               amet: "consectetur",
               adipiscing: "elit",
-              lol: ["hi", "there"],
+              lol: ["hi", "there"]
             },
-            xxx: 1337n,
+            xxx: 1337n
           },
-          urgh: new Set([BigInt("0xdeadbeef"), 0n, "baz", ["hi", "there"]]),
+          urgh: new Set([BigInt("0xdeadbeef"), 0n, "baz", ["hi", "there"]])
         } satisfies Entries,
         privateKey
       );
@@ -160,7 +160,7 @@ if (import.meta.vitest) {
       const entries = {
         foo: "foo",
         bar: "bar",
-        baz: "baz",
+        baz: "baz"
       };
 
       const pod = sign(entries, privateKey);
@@ -169,7 +169,7 @@ if (import.meta.vitest) {
         foo: "foo",
         bar: "bar",
         baz: "baz",
-        _signer: publicKey,
+        _signer: publicKey
       });
 
       const rootHash = toBackendValue(pod.entries, true);

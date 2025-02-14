@@ -6,7 +6,7 @@ import {
   signMessage,
   unpackPublicKey,
   unpackSignature,
-  verifySignature,
+  verifySignature
 } from "@zk-kit/eddsa-poseidon";
 import { leBigIntToBuffer, leBufferToBigInt } from "@zk-kit/utils";
 import { generateKeyPair } from "../utils/test.js";
@@ -21,13 +21,16 @@ interface EdDSAPodSignResult {
   id: bigint;
 }
 
-export function sign(entries: PODEntryMap, privateKey: string): EdDSAPodSignResult {
+export function sign(
+  entries: PODEntryMap,
+  privateKey: string
+): EdDSAPodSignResult {
   const dict = new POD2Dictionary(entries);
   const root = dict.commitment();
 
- // TODO we could do some interning here, if we already have an instance of
- // this Pod in memory then we could return it from a cache. It doesn't save
- // any work but might save some memory.
+  // TODO we could do some interning here, if we already have an instance of
+  // this Pod in memory then we could return it from a cache. It doesn't save
+  // any work but might save some memory.
 
   const signedMessage = signMessage(Buffer.from(privateKey, "hex"), root);
   const signature = packSignature(signedMessage);
@@ -41,16 +44,19 @@ export function sign(entries: PODEntryMap, privateKey: string): EdDSAPodSignResu
   return { signature: signatureHex, signer: publicKeyHex, id: root };
 }
 
-export function verify(id: bigint, signature: string, publicKey: string): boolean {
+export function verify(
+  id: bigint,
+  signature: string,
+  publicKey: string
+): boolean {
   const signatureBuffer = Buffer.from(signature, "hex");
   const unpackedSignature = unpackSignature(signatureBuffer);
 
   const publicKeyBuffer = Buffer.from(publicKey, "hex");
   const unpackedPublicKey = unpackPublicKey(leBufferToBigInt(publicKeyBuffer));
-  
+
   return verifySignature(id, unpackedSignature, unpackedPublicKey);
 }
-
 
 if (import.meta.vitest) {
   const { test, expect, describe } = import.meta.vitest;
@@ -65,7 +71,7 @@ if (import.meta.vitest) {
         new Map([
           [stringToBigInt("a"), 1n],
           [stringToBigInt("b"), 2n],
-          [stringToBigInt("c"), set.commitment()],
+          [stringToBigInt("c"), set.commitment()]
         ]),
         privateKey
       );
