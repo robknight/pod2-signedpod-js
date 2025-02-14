@@ -13,6 +13,9 @@ export class POD2Dictionary {
   #tree: imt.LeanIMT<bigint>;
 
   public constructor(kv: Map<Value, Value>) {
+    if (kv.size === 0) {
+      throw new Error("POD2Dictionary cannot be empty");
+    }
     this.#tree = new imt.LeanIMT<bigint>(hashFunction);
     this.#tree.insertMany(
       Array.from(kv.entries())
@@ -21,20 +24,20 @@ export class POD2Dictionary {
     );
   }
 
-  public commitment() {
+  public commitment(): bigint {
     return this.#tree.root;
   }
 
-  public get(key: Value) {
+  public get(key: Value): bigint | undefined {
     const keyPos = this.#tree.indexOf(key);
     return this.#tree.leaves[keyPos + 1];
   }
 
-  public prove(value: Value) {
+  public prove(value: Value): MerkleProof {
     return this.#tree.generateProof(this.#tree.indexOf(value));
   }
 
-  public verify(proof: MerkleProof) {
+  public verify(proof: MerkleProof): boolean {
     return this.#tree.verifyProof(proof);
   }
 
@@ -47,7 +50,7 @@ export class POD2Dictionary {
     })();
   }
 
-  public equals(other: POD2Dictionary) {
+  public equals(other: POD2Dictionary): boolean {
     return this.commitment() === other.commitment();
   }
 }
@@ -58,6 +61,9 @@ export class POD2Set {
   #tree: imt.LeanIMT<bigint>;
 
   public constructor(values: Value[]) {
+    if (values.length === 0) {
+      throw new Error("POD2Set cannot be empty");
+    }
     this.#tree = new imt.LeanIMT<bigint>(hashFunction);
     const leaves = [];
     for (const value of values) {
@@ -66,15 +72,15 @@ export class POD2Set {
     this.#tree.insertMany(leaves.sort((a, b) => (a > b ? 1 : -1)));
   }
 
-  public commitment() {
+  public commitment(): bigint {
     return this.#tree.root;
   }
 
-  public prove(value: Value) {
+  public prove(value: Value): MerkleProof {
     return this.#tree.generateProof(this.#tree.indexOf(value));
   }
 
-  public verify(proof: MerkleProof) {
+  public verify(proof: MerkleProof): boolean {
     return this.#tree.verifyProof(proof);
   }
 
@@ -87,20 +93,24 @@ export class POD2Array {
   #tree: imt.LeanIMT<bigint>;
 
   public constructor(values: Value[]) {
+    if (values.length === 0) {
+      // TODO perhaps empty arrays are allowed, in which case we need a special value
+      throw new Error("POD2Array cannot be empty");
+    }
     this.#tree = new imt.LeanIMT<bigint>(hashFunction);
     const leaves = values.flatMap((val, idx) => [BigInt(idx), val]);
     this.#tree.insertMany(leaves);
   }
 
-  public commitment() {
+  public commitment(): bigint {
     return this.#tree.root;
   }
 
-  public prove(value: Value) {
+  public prove(value: Value): MerkleProof {
     return this.#tree.generateProof(this.#tree.indexOf(value));
   }
 
-  public verify(proof: MerkleProof) {
+  public verify(proof: MerkleProof): boolean {
     return this.#tree.verifyProof(proof);
   }
 
@@ -108,7 +118,7 @@ export class POD2Array {
     return this.#tree.leaves.values();
   }
 
-  public equals(other: POD2Array) {
+  public equals(other: POD2Array): boolean {
     return this.commitment() === other.commitment();
   }
 }

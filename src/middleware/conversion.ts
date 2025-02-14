@@ -1,6 +1,6 @@
-import { sha256 } from "js-sha256";
 import { POD2Set, POD2Array, POD2Dictionary } from "./containers.js";
 import type { ContainerValue, EntryValue } from "../frontends/eddsa_signed.js";
+import { hashString } from "./shared.js";
 
 export const containerInterning = new WeakMap<
   ContainerValue,
@@ -26,7 +26,7 @@ function toBackendDictionary(dict: Record<string, EntryValue>): POD2Dictionary {
 
 export function toBackendValue(value: EntryValue, skipCache = false): bigint {
   if (typeof value === "string") {
-    return BigInt("0x" + sha256(value));
+    return BigInt("0x" + hashString(value));
   }
 
   if (typeof value === "bigint") {

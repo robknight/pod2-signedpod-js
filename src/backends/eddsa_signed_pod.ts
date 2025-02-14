@@ -1,4 +1,3 @@
-import { sha256 } from "js-sha256";
 import { POD2Dictionary, POD2Set } from "../middleware/containers.js";
 import {
   derivePublicKey,
@@ -12,6 +11,7 @@ import {
 import { leBigIntToBuffer, leBufferToBigInt } from "@zk-kit/utils";
 import { generateKeyPair } from "../utils/test.js";
 import { Buffer } from "buffer";
+import { hashString } from "../middleware/shared.js";
 
 type PODEntryMap = Map<bigint, bigint>;
 
@@ -55,7 +55,7 @@ export function verify(id: bigint, signature: string, publicKey: string): boolea
 if (import.meta.vitest) {
   const { test, expect, describe } = import.meta.vitest;
 
-  const stringToBigInt = (str: string) => BigInt("0x" + sha256(str));
+  const stringToBigInt = (str: string) => BigInt("0x" + hashString(str));
 
   describe("sign", () => {
     test("sign", () => {

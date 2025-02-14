@@ -34,7 +34,7 @@ export interface Pod<E extends Entries> {
   signer: string;
 }
 
-interface EdDSAPodData<E extends Entries> {
+export interface EdDSAPodData<E extends Entries> {
   readonly id: bigint;
   readonly entries: E;
   readonly signature: string;
