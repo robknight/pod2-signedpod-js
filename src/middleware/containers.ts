@@ -1,8 +1,8 @@
 import { poseidon2 } from "poseidon-lite/poseidon2";
 import * as imt from "@zk-kit/lean-imt";
+import type { Value } from "./shared.js";
+import type { Evaluate } from "../utils/types.js";
 
-type Value = bigint;
-type Evaluate<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 type MerkleProof = Evaluate<imt.LeanIMTMerkleProof<bigint>>;
 
 function hashFunction(left: bigint, right: bigint): bigint {
@@ -52,7 +52,7 @@ export class POD2Dictionary {
   }
 }
 
-const EMPTY = 0n; // ?? what should this be?
+const EMPTY = 0n; // TODO ?? what should this be?
 
 export class POD2Set {
   #tree: imt.LeanIMT<bigint>;

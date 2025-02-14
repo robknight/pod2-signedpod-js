@@ -1,5 +1,5 @@
 import { sha256 } from "js-sha256";
-import { POD2Dictionary, POD2Set } from "../containers/containers.js";
+import { POD2Dictionary, POD2Set } from "../middleware/containers.js";
 import {
   derivePublicKey,
   packPublicKey,
@@ -15,16 +15,17 @@ import { Buffer } from "buffer";
 
 type PODEntryMap = Map<bigint, bigint>;
 
-// const SIGNER = BigInt("0x" + sha256("_signer"));
-// const TYPE = BigInt("0x" + sha256("_type"));
+interface EdDSAPodSignResult {
+  signature: string;
+  signer: string;
+  id: bigint;
+}
 
-export function sign(entries: PODEntryMap, privateKey: string) {
+export function sign(entries: PODEntryMap, privateKey: string): EdDSAPodSignResult {
   const publicKey = derivePublicKey(Buffer.from(privateKey, "hex"));
   const publicKeyHex = leBigIntToBuffer(packPublicKey(publicKey)).toString(
     "hex"
   );
-
-  // TODO consider inserting signer public key and type entry here
 
   const dict = new POD2Dictionary(entries);
   const root = dict.commitment();
@@ -32,15 +33,17 @@ export function sign(entries: PODEntryMap, privateKey: string) {
   const signature = packSignature(signedMessage);
   const signatureHex = signature.toString("hex");
 
-  return { entries, signature: signatureHex, signer: publicKeyHex, id: root };
+  return { signature: signatureHex, signer: publicKeyHex, id: root };
 }
 
-export function verify(podRoot: bigint, signature: string, publicKey: string) {
-  const publicKeyBuffer = Buffer.from(publicKey, "hex");
+export function verify(id: bigint, signature: string, publicKey: string): boolean {
   const signatureBuffer = Buffer.from(signature, "hex");
   const unpackedSignature = unpackSignature(signatureBuffer);
+
+  const publicKeyBuffer = Buffer.from(publicKey, "hex");
   const unpackedPublicKey = unpackPublicKey(leBufferToBigInt(publicKeyBuffer));
-  return verifySignature(podRoot, unpackedSignature, unpackedPublicKey);
+  
+  return verifySignature(id, unpackedSignature, unpackedPublicKey);
 }
 
 if (import.meta.vitest) {
@@ -52,7 +55,7 @@ if (import.meta.vitest) {
     test("sign", () => {
       const { privateKey, publicKey } = generateKeyPair();
       const set = new POD2Set([1n, 2n, 3n]);
-      const { id, entries, signature } = sign(
+      const { id, signature } = sign(
         new Map([
           [stringToBigInt("a"), 1n],
           [stringToBigInt("b"), 2n],

@@ -19,9 +19,6 @@ importers:
       '@zk-kit/lean-imt':
         specifier: ^2.2.2
         version: 2.2.2
-      '@zk-kit/smt':
-        specifier: ^1.0.2
-        version: 1.0.2
       '@zk-kit/utils':
         specifier: ^1.3.0
         version: 1.3.0
@@ -34,6 +31,9 @@ importers:
       circomlibjs:
         specifier: ^0.1.7
         version: 0.1.7
+      deep-freeze-es6:
+        specifier: ^4.0.0
+        version: 4.0.0
       js-sha256:
         specifier: ^0.11.0
         version: 0.11.0
@@ -450,9 +450,6 @@ packages:
   '@zk-kit/lean-imt@2.2.2':
     resolution: {integrity: sha512-rscIPEgBBcu9vP/DJ3J+3187G/ObKETl343G5enPawNT81oeQSdHx3e2ZapTC+GfrZ/AS2AHHUOpRS1FfdSwjg==}
 
-  '@zk-kit/smt@1.0.2':
-    resolution: {integrity: sha512-RvtF6r3imbX70elUx0Pd08VnYVn+D0an6JNdmv1qgl7WWfsq3mrwWNUHLOtWBCyvB2BaJsc3btWZzUCNVm2POg==}
-
   '@zk-kit/utils@1.2.1':
     resolution: {integrity: sha512-H2nTsyWdicVOyvqC5AjgU7tsTgmR6PDrruFJNmlmdhKp7RxEia/E1B1swMZjaasYa2QMp4Zc6oB7cWchty7B2Q==}
 
@@ -574,6 +571,10 @@ packages:
   deep-eql@5.0.2:
     resolution: {integrity: sha512-h5k/5U50IJJFpzfL6nO9jaaumfjO/f2NjK/oYB2Djzm4p9L+3T9qWpZqZ2hAbLPuuYq9wrU08WQyBTL5GbPk5Q==}
     engines: {node: '>=6'}
+
+  deep-freeze-es6@4.0.0:
+    resolution: {integrity: sha512-qQcB/Cu4R0GahgD7u0MuI3vVmkfDC1FgHEovwn69e+1bGgtE27gIo9ApP/CzFUshqnv1GljWU92NTBNoxY3VVA==}
+    engines: {node: '>=20.9.0'}
 
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
@@ -1406,8 +1407,6 @@ snapshots:
     dependencies:
       '@zk-kit/utils': 1.2.1
 
-  '@zk-kit/smt@1.0.2': {}
-
   '@zk-kit/utils@1.2.1':
     dependencies:
       buffer: 6.0.3
@@ -1530,6 +1529,8 @@ snapshots:
       ms: 2.1.3
 
   deep-eql@5.0.2: {}
+
+  deep-freeze-es6@4.0.0: {}
 
   deep-is@0.1.4: {}
 

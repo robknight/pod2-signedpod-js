@@ -1,30 +1,30 @@
 import { sha256 } from "js-sha256";
-import { POD2Set, POD2Array, POD2Dictionary } from "./containers/containers.js";
-import type { ContainerValue, Value } from "./frontend.js";
+import { POD2Set, POD2Array, POD2Dictionary } from "./containers.js";
+import type { ContainerValue, EntryValue } from "../frontends/eddsa_signed.js";
 
 export const containerInterning = new WeakMap<
   ContainerValue,
   POD2Set | POD2Array | POD2Dictionary
 >();
 
-function toBackendSet(set: Set<Value>): POD2Set {
+function toBackendSet(set: Set<EntryValue>): POD2Set {
   const values = Array.from(set).map((value) => toBackendValue(value));
   return new POD2Set(values);
 }
 
-function toBackendArray(array: Value[]): POD2Array {
+function toBackendArray(array: EntryValue[]): POD2Array {
   const values = array.map((value) => toBackendValue(value));
   return new POD2Array(values);
 }
 
-function toBackendDictionary(dict: Record<string, Value>): POD2Dictionary {
+function toBackendDictionary(dict: Record<string, EntryValue>): POD2Dictionary {
   const values = new Map(
     Object.entries(dict).map(([key, value]) => [toBackendValue(key), toBackendValue(value)])
   );
   return new POD2Dictionary(values);
 }
 
-export function toBackendValue(value: Value, skipCache = false): bigint {
+export function toBackendValue(value: EntryValue, skipCache = false): bigint {
   if (typeof value === "string") {
     return BigInt("0x" + sha256(value));
   }
@@ -33,7 +33,10 @@ export function toBackendValue(value: Value, skipCache = false): bigint {
     return value;
   }
 
-  // TODO freeze object types?
+  if (!Object.isFrozen(value)) {
+    throw new Error("Cannot convert mutable object to backend value");
+  }
+
   if (!skipCache && containerInterning.has(value)) {
     return containerInterning.get(value)!.commitment();
   }
@@ -56,7 +59,7 @@ export function toBackendValue(value: Value, skipCache = false): bigint {
 
   if (typeof value === "object") {
     // TODO check this
-    const dict = value as Record<string, Value>;
+    const dict = value as Record<string, EntryValue>;
     const backendDict = toBackendDictionary(dict);
     if (!skipCache) {
       containerInterning.set(value, backendDict);
