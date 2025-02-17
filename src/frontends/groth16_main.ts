@@ -13,23 +13,57 @@ import {
   AnchoredKey,
   Entry,
   Origin,
-  POD_CLASS_SIGNED
+  POD_CLASS_SIGNED,
+  type Params
 } from "./shared.js";
+import { zip } from "../utils/zip.js";
+import { Groth16MainPod } from "../backends/groth16_main_pod.js";
+import {
+  MiddlewareStatement,
+  MiddlewareAnchoredKey,
+  MiddlewareOperation,
+  type MiddlewareStatementArg,
+  type MiddlewareOperationArg
+} from "../middleware/statements.js";
+import { toBackendValue } from "../middleware/conversion.js";
 
-interface Groth16MainPod {
-  input_signed_pods: Record<string, EdDSAPodData<Entries>>;
-  operations: Operation[];
-  input_statements: Statement[];
-  public_statements: Statement[];
-  all_statements: Statement[]; // why?
-}
+// interface Groth16MainPod {
+//   input_signed_pods: Record<string, EdDSAPodData<Entries>>;
+//   operations: Operation[];
+//   input_statements: Statement[];
+//   public_statements: Statement[];
+//   all_statements: Statement[]; // why?
+// }
 
-class MainPodBuilder {
+const DEFAULT_PARAMS: Params = {
+  max_input_signed_pods: 2,
+  max_input_main_pods: 3,
+  // Meaning additional statements beyond the input statements from signed Pods:
+  max_statements: 20,
+  max_signed_pod_values: 6,
+  max_public_statements: 10,
+  max_statement_args: 5,
+  max_operation_args: 5
+};
+
+export class MainPodBuilder {
   #newEntryCount = 0;
   #signedPods: EdDSAPodData<Entries>[] = [];
   #statements: Statement[] = [];
   #publicStatements: Statement[] = [];
   #operations: Operation[] = [];
+
+  public get statements(): Statement[] {
+    return this.#statements;
+  }
+
+  public get operations(): Operation[] {
+    return this.#operations;
+  }
+
+  public get publicStatements(): Statement[] {
+    return this.#publicStatements;
+  }
 
   #op_arg_entries(isPublic: boolean, args: OperationArg[]): StatementArg[] {
     const statementArgs: StatementArg[] = [];
@@ -68,9 +102,12 @@ class MainPodBuilder {
     return statementArgs;
   }
 
-  public insert(st: Statement, op: Operation) {}
+  public insert(st: Statement, op: Operation): void {
+    this.#statements.push(st);
+    this.#operations.push(op);
+  }
 
-  public addSignedPod(pod: EdDSAPodData<Entries>) {
+  public addSignedPod(pod: EdDSAPodData<Entries>): void {
     this.#signedPods.push(pod);
   }
 
@@ -113,10 +150,133 @@ class MainPodBuilder {
     return statement;
   }
 
-  public print() {
+  public prove(): Groth16MainPod {
+    const compiler = new MainPodCompiler(DEFAULT_PARAMS);
+
+    const { statements, operations, publicStatements } = compiler.compile({
+      statements: this.#statements,
+      operations: this.#operations,
+      publicStatements: this.#publicStatements
+    });
+
+    const inputs: MainPodInputs = {
+      statements,
+      operations,
+      publicStatements,
+      signedPods: this.#signedPods
+    };
+
+    const pod = new Groth16MainPod(DEFAULT_PARAMS, inputs);
+    return pod;
+  }
+
+  public print(): void {
     console.dir(this.#statements, { depth: null });
     console.dir(this.#operations, { depth: null });
     console.dir(this.#signedPods, { depth: null });
+  }
+}
+
+interface MainPodCompilerInputs {
+  statements: Statement[];
+  operations: Operation[];
+  publicStatements: Statement[];
+}
+
+interface MainPodCompilerOutputs {
+  statements: MiddlewareStatement[];
+  operations: MiddlewareOperation[];
+  publicStatements: MiddlewareStatement[];
+}
+
+export interface MainPodInputs {
+  statements: MiddlewareStatement[];
+  operations: MiddlewareOperation[];
+  publicStatements: MiddlewareStatement[];
+  signedPods: EdDSAPodData<Entries>[];
+}
+
+class MainPodCompiler {
+  #statements: MiddlewareStatement[] = [];
+  #operations: MiddlewareOperation[] = [];
+  params: Params;
+
+  constructor(params: Params) {
+    this.params = params;
+  }
+
+  public compile(inputs: MainPodCompilerInputs): MainPodCompilerOutputs {
+    const { statements, operations, publicStatements } = inputs;
+
+    for (const [st, op] of zip(statements, operations)) {
+      this.compileStatementAndOperation(st, op);
+
+      if (this.#statements.length > this.params.max_statements) {
+        throw new Error("Max statements reached");
+      }
+    }
+
+    const outputPublicStatements = publicStatements.map(
+      this.compileStatement.bind(this)
+    );
+
+    return {
+      statements: this.#statements,
+      operations: this.#operations,
+      publicStatements: outputPublicStatements
+    };
+  }
+
+  private compileAnchoredKey(ak: AnchoredKey) {
+    return new MiddlewareAnchoredKey(ak.origin.podId, toBackendValue(ak.key));
+  }
+
+  private compileStatement(st: Statement) {
+    const statementArgs: MiddlewareStatementArg[] = [];
+
+    for (const arg of st.args) {
+      if (arg instanceof AnchoredKey) {
+        statementArgs.push(this.compileAnchoredKey(arg));
+      } else {
+        statementArgs.push(toBackendValue(arg));
+      }
+      if (statementArgs.length > this.params.max_statement_args) {
+        throw new Error("Max statement args reached");
+      }
+    }
+
+    return new MiddlewareStatement(st.nativeStatement, statementArgs);
+  }
+
+  private compileOperationArg(arg: OperationArg): MiddlewareOperationArg {
+    if (arg instanceof AnchoredKey) {
+      return this.compileAnchoredKey(arg);
+    } else if (arg instanceof Statement) {
+      return this.compileStatement(arg);
+    } else if (arg instanceof Entry) {
+      return "None";
+    } else {
+      throw new Error("Unknown operation arg");
+    }
+  }
+
+  private compileStatementAndOperation(st: Statement, op: Operation) {
+    const statement = this.compileStatement(st);
+    this.pushStatementAndOperation(
+      statement,
+      new MiddlewareOperation(
+        op.nativeOperation,
+        op.args.map(this.compileOperationArg.bind(this))
+      )
+    );
+  }
+
+  private pushStatementAndOperation(
+    st: MiddlewareStatement,
+    op: MiddlewareOperation
+  ): void {
+    this.#statements.push(st);
+    this.#operations.push(op);
   }
 }
 
@@ -137,6 +297,16 @@ if (import.meta.vitest) {
         ])
       );
       builder.print();
+
+      const compiler = new MainPodCompiler(DEFAULT_PARAMS);
+
+      const outputs = compiler.compile({
+        statements: builder.statements,
+        operations: builder.operations,
+        publicStatements: builder.publicStatements
+      });
+
+      console.dir(outputs, { depth: null });
     });
   });
 }

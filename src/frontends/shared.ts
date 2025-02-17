@@ -4,8 +4,9 @@ import type {
 } from "../middleware/statements.js";
 import type { EntryValue } from "./eddsa_signed.js";
 
-interface Params {
+export interface Params {
   max_input_signed_pods: number;
+  max_input_main_pods: number;
   max_statements: number;
   max_signed_pod_values: number;
   max_public_statements: number;
@@ -13,7 +14,7 @@ interface Params {
   max_operation_args: number;
 }
 
-export type Value = EntryValue; // might need to rename this to "PodValue"
+export type FrontendValue = EntryValue; // might need to rename this to "PodValue"
 
 export const POD_CLASS_MAIN = 0;
 export const POD_CLASS_SIGNED = 1;
@@ -38,7 +39,7 @@ export class AnchoredKey {
   }
 }
 
-export type StatementArg = Value | AnchoredKey;
+export type StatementArg = FrontendValue | AnchoredKey;
 
 export class Statement {
   nativeStatement: keyof typeof NativeStatement; // some kind of enum
@@ -68,7 +69,7 @@ export class Entry {
 export type OperationArg =
   | Statement
   | AnchoredKey /* Key */
-  | Value /* Literal */
+  | FrontendValue /* Literal */
   | Entry;
 
 export class Operation {

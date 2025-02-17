@@ -1,6 +1,6 @@
 import { poseidon2 } from "poseidon-lite/poseidon2";
 import * as imt from "@zk-kit/lean-imt";
-import type { Value } from "./shared.js";
+import type { MiddlewareValue } from "./shared.js";
 import type { Evaluate } from "../utils/types.js";
 
 type MerkleProof = Evaluate<imt.LeanIMTMerkleProof<bigint>>;
@@ -12,7 +12,7 @@ function hashFunction(left: bigint, right: bigint): bigint {
 export class POD2Dictionary {
   #tree: imt.LeanIMT<bigint>;
 
-  public constructor(kv: Map<Value, Value>) {
+  public constructor(kv: Map<MiddlewareValue, MiddlewareValue>) {
     if (kv.size === 0) {
       throw new Error("POD2Dictionary cannot be empty");
     }
@@ -28,12 +28,12 @@ export class POD2Dictionary {
     return this.#tree.root;
   }
 
-  public get(key: Value): bigint | undefined {
+  public get(key: MiddlewareValue): bigint | undefined {
     const keyPos = this.#tree.indexOf(key);
     return this.#tree.leaves[keyPos + 1];
   }
 
-  public prove(value: Value): MerkleProof {
+  public prove(value: MiddlewareValue): MerkleProof {
     return this.#tree.generateProof(this.#tree.indexOf(value));
   }
 
@@ -41,7 +41,7 @@ export class POD2Dictionary {
     return this.#tree.verifyProof(proof);
   }
 
-  [Symbol.iterator](): IterableIterator<[Value, Value]> {
+  [Symbol.iterator](): IterableIterator<[MiddlewareValue, MiddlewareValue]> {
     const leaves = this.#tree.leaves;
     return (function* () {
       for (let i = 0; i < leaves.length; i += 2) {
@@ -60,7 +60,7 @@ const EMPTY = 0n; // TODO ?? what should this be?
 export class POD2Set {
   #tree: imt.LeanIMT<bigint>;
 
-  public constructor(values: Value[]) {
+  public constructor(values: MiddlewareValue[]) {
     if (values.length === 0) {
       throw new Error("POD2Set cannot be empty");
     }
@@ -76,7 +76,7 @@ export class POD2Set {
     return this.#tree.root;
   }
 
-  public prove(value: Value): MerkleProof {
+  public prove(value: MiddlewareValue): MerkleProof {
     return this.#tree.generateProof(this.#tree.indexOf(value));
   }
 
@@ -84,7 +84,7 @@ export class POD2Set {
     return this.#tree.verifyProof(proof);
   }
 
-  [Symbol.iterator](): IterableIterator<Value> {
+  [Symbol.iterator](): IterableIterator<MiddlewareValue> {
     return this.#tree.leaves.values();
   }
 }
@@ -92,7 +92,7 @@ export class POD2Set {
 export class POD2Array {
   #tree: imt.LeanIMT<bigint>;
 
-  public constructor(values: Value[]) {
+  public constructor(values: MiddlewareValue[]) {
     if (values.length === 0) {
       // TODO perhaps empty arrays are allowed, in which case we need a special value
       throw new Error("POD2Array cannot be empty");
@@ -106,7 +106,7 @@ export class POD2Array {
     return this.#tree.root;
   }
 
-  public prove(value: Value): MerkleProof {
+  public prove(value: MiddlewareValue): MerkleProof {
     return this.#tree.generateProof(this.#tree.indexOf(value));
   }
 
@@ -114,7 +114,7 @@ export class POD2Array {
     return this.#tree.verifyProof(proof);
   }
 
-  [Symbol.iterator](): IterableIterator<Value> {
+  [Symbol.iterator](): IterableIterator<MiddlewareValue> {
     return this.#tree.leaves.values();
   }
 

@@ -4,27 +4,114 @@ import {
   packPublicKey,
   packSignature,
   signMessage,
-  unpackPublicKey,
-  unpackSignature,
-  verifySignature
+  verifySignature,
+  type Signature
 } from "@zk-kit/eddsa-poseidon";
-import { leBigIntToBuffer, leBufferToBigInt } from "@zk-kit/utils";
+import { leBigIntToBuffer } from "@zk-kit/utils";
 import { generateKeyPair } from "../utils/test.js";
 import { Buffer } from "buffer";
-import { hashString } from "../middleware/shared.js";
+import { hashString, type MiddlewareValue } from "../middleware/shared.js";
+import type { BackendSignedPod } from "./pods.js";
+import {
+  MiddlewareAnchoredKey,
+  MiddlewareStatement
+} from "../middleware/statements.js";
+import type { Point } from "@zk-kit/baby-jubjub";
+import type { EdDSAPodData, Entries } from "../frontends/eddsa_signed.js";
+import { getPod } from "../middleware/pods.js";
+import type { LeanIMTMerkleProof } from "@zk-kit/lean-imt";
+
+type EdDSAPodSignature = Signature<bigint>;
+type EdDSAPodPublicKey = Point<bigint>;
 
 type PODEntryMap = Map<bigint, bigint>;
 
 interface EdDSAPodSignResult {
-  signature: string;
-  signer: string;
+  signature: EdDSAPodSignature;
+  signer: EdDSAPodPublicKey;
   id: bigint;
+  dict: POD2Dictionary;
 }
 
-export function sign(
+export class BackendEdDSASignedPod implements BackendSignedPod {
+  #dict: POD2Dictionary;
+  #id: bigint;
+  #signature: Signature<bigint>;
+  #signer: Point<bigint>;
+
+  public constructor(
+    dict: POD2Dictionary,
+    signature: EdDSAPodSignature,
+    signer: EdDSAPodPublicKey
+  ) {
+    this.#dict = dict;
+    this.#id = dict.commitment();
+    this.#signature = signature;
+    this.#signer = signer;
+  }
+
+  public verify(): boolean {
+    return verify(this.#id, this.#signature, this.#signer);
+  }
+
+  public id(): bigint {
+    return this.#id;
+  }
+
+  public get signature(): EdDSAPodSignature {
+    return this.#signature;
+  }
+
+  public get signer(): EdDSAPodPublicKey {
+    return this.#signer;
+  }
+
+  public signatureHex(): string {
+    const signatureBuffer = packSignature(this.#signature);
+    return signatureBuffer.toString("hex");
+  }
+
+  public signerHex(): string {
+    const signerBuffer = packPublicKey(this.#signer);
+    return leBigIntToBuffer(signerBuffer).toString("hex");
+  }
+
+  public kvs(): Map<MiddlewareValue, MiddlewareValue> {
+    // Since a dict is iterable, we can turn it into a map.
+    return new Map(this.#dict);
+  }
+
+  public proof(key: MiddlewareValue): LeanIMTMerkleProof {
+    return this.#dict.prove(key);
+  }
+
+  public publicStatements(): MiddlewareStatement[] {
+    const statements: MiddlewareStatement[] = [];
+    for (const [k, v] of this.#dict) {
+      statements.push(
+        new MiddlewareStatement("ValueOf", [
+          new MiddlewareAnchoredKey(this.#id, k),
+          v
+        ])
+      );
+    }
+
+    return statements;
+  }
+
+  static fromFrontend(pod: EdDSAPodData<Entries>): BackendEdDSASignedPod {
+    const backendPod = getPod(pod);
+    if (!backendPod) {
+      throw new Error("Pod not found");
+    }
+    return backendPod as BackendEdDSASignedPod;
+  }
+}
+
+export function backendEdDSASign(
   entries: PODEntryMap,
   privateKey: string
-): EdDSAPodSignResult {
+): BackendEdDSASignedPod {
   const dict = new POD2Dictionary(entries);
   const root = dict.commitment();
 
@@ -33,29 +120,18 @@ export function sign(
   // any work but might save some memory.
 
   const signedMessage = signMessage(Buffer.from(privateKey, "hex"), root);
-  const signature = packSignature(signedMessage);
-  const signatureHex = signature.toString("hex");
 
   const publicKey = derivePublicKey(Buffer.from(privateKey, "hex"));
-  const publicKeyHex = leBigIntToBuffer(packPublicKey(publicKey)).toString(
-    "hex"
-  );
 
-  return { signature: signatureHex, signer: publicKeyHex, id: root };
+  return new BackendEdDSASignedPod(dict, signedMessage, publicKey);
 }
 
 export function verify(
   id: bigint,
-  signature: string,
-  publicKey: string
+  signature: EdDSAPodSignature,
+  publicKey: EdDSAPodPublicKey
 ): boolean {
-  const signatureBuffer = Buffer.from(signature, "hex");
-  const unpackedSignature = unpackSignature(signatureBuffer);
-
-  const publicKeyBuffer = Buffer.from(publicKey, "hex");
-  const unpackedPublicKey = unpackPublicKey(leBufferToBigInt(publicKeyBuffer));
-
-  return verifySignature(id, unpackedSignature, unpackedPublicKey);
+  return verifySignature(id, signature, publicKey);
 }
 
 if (import.meta.vitest) {
@@ -67,7 +143,7 @@ if (import.meta.vitest) {
     test("sign", () => {
       const { privateKey, publicKey } = generateKeyPair();
       const set = new POD2Set([1n, 2n, 3n]);
-      const { id, signature } = sign(
+      const pod = backendEdDSASign(
         new Map([
           [stringToBigInt("a"), 1n],
           [stringToBigInt("b"), 2n],
@@ -76,7 +152,7 @@ if (import.meta.vitest) {
         privateKey
       );
 
-      expect(verify(id, signature, publicKey)).toBe(true);
+      expect(pod.verify()).toBe(true);
     });
   });
 }

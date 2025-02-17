@@ -6,7 +6,7 @@
     "declarationMap": true,
     "esModuleInterop": true,
     "incremental": false,
-    "isolatedDeclarations": false,
+    "isolatedDeclarations": true,
     "isolatedModules": true,
     "lib": ["es2020", "DOM", "DOM.Iterable"],
     "module": "nodenext",

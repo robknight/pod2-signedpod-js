@@ -3,21 +3,29 @@ import {
   toBackendValue
 } from "../middleware/conversion.js";
 import {
-  sign as signBackend,
+  backendEdDSASign,
   verify as verifyBackend
 } from "../backends/eddsa_signed_pod.js";
 import { generateKeyPair } from "../utils/test.js";
 import { deepFreeze } from "deep-freeze-es6";
-import { derivePublicKey, packPublicKey } from "@zk-kit/eddsa-poseidon";
-import { leBigIntToBuffer } from "@zk-kit/utils";
+import {
+  derivePublicKey,
+  packPublicKey,
+  unpackPublicKey,
+  unpackSignature,
+  type Signature
+} from "@zk-kit/eddsa-poseidon";
+import { leBigIntToBuffer, leBufferToBigInt } from "@zk-kit/utils";
 import type { Evaluate } from "../utils/types.js";
 import { Buffer } from "buffer";
+import { registerPod } from "../middleware/pods.js";
 
 export type Scalar = string | bigint;
-export type Recursive<T> =
-  | T
+export type Recursive<T> = T | RecursiveContainer<T>;
+export type RecursiveContainer<T> =
   | Set<Recursive<T>>
   | Recursive<T>[]
+  | readonly Recursive<T>[]
   | { [key: string]: Recursive<T> };
 
 export type EntryValue = Recursive<Scalar>;
@@ -26,6 +34,20 @@ export type ContainerValue = Exclude<EntryValue, Scalar>;
 export interface Entries {
   [key: string]: EntryValue;
 }
+
+// TODO This also ought to reflect the amendments to set/map types made by
+// deep-freeze-es6
+export type DeepReadonly<T> = Evaluate<{
+  readonly [K in keyof T]: T[K] extends object
+    ? T[K] extends Function
+      ? T[K]
+      : DeepReadonly<T[K]>
+    : T[K];
+}>;
+
+export type SignedContainerValue = DeepReadonly<ContainerValue>;
+export type SignedEntryValue = DeepReadonly<EntryValue>;
+export type SignedEntries = DeepReadonly<Entries>;
 
 export interface Pod<E extends Entries> {
   id: bigint;
@@ -41,33 +63,33 @@ export interface EdDSAPodData<E extends Entries> {
   readonly signer: string;
 }
 
-class EdDSAPod<E extends Entries> implements EdDSAPodData<E> {
-  public readonly id: bigint;
-  public readonly entries: E;
-  public readonly signature: string;
-  public readonly signer: string;
+// class EdDSAPod<E extends Entries> implements EdDSAPodData<E> {
+//   public readonly id: bigint;
+//   public readonly entries: E;
+//   public readonly signature: string;
+//   public readonly signer: string;
 
-  constructor(id: bigint, entries: E, signature: string, signer: string) {
-    this.id = id;
-    this.entries = entries;
-    this.signature = signature;
-    this.signer = signer;
-    deepFreeze(this);
-  }
+//   constructor(id: bigint, entries: E, signature: string, signer: string) {
+//     this.id = id;
+//     this.entries = entries;
+//     this.signature = signature;
+//     this.signer = signer;
+//     deepFreeze(this);
+//   }
 
-  public static fromData<E extends Entries>(
-    data: EdDSAPodData<E>
-  ): EdDSAPod<E> {
-    return new EdDSAPod(data.id, data.entries, data.signature, data.signer);
-  }
-}
+//   public static fromData<E extends Entries>(
+//     data: EdDSAPodData<E>
+//   ): EdDSAPod<E> {
+//     return new EdDSAPod(data.id, data.entries, data.signature, data.signer);
+//   }
+// }
 
 type WithSigner<E extends Entries> = Evaluate<E & { _signer: string }>;
 
 export function sign<E extends Entries>(
   entries: E,
   privateKey: string
-): EdDSAPodData<WithSigner<E>> {
+): DeepReadonly<EdDSAPodData<WithSigner<E>>> {
   const publicKey = derivePublicKey(Buffer.from(privateKey, "hex"));
   const publicKeyHex = leBigIntToBuffer(packPublicKey(publicKey)).toString(
     "hex"
@@ -83,14 +105,18 @@ export function sign<E extends Entries>(
     ])
   );
 
-  const { signature, signer, id } = signBackend(entriesToSign, privateKey);
-
-  return {
-    signature,
-    signer,
-    id,
+  const pod = backendEdDSASign(entriesToSign, privateKey);
+  const result = deepFreeze({
+    signature: pod.signatureHex(),
+    signer: pod.signerHex(),
+    id: pod.id(),
     entries: clonedEntries
-  };
+  }) as DeepReadonly<EdDSAPodData<WithSigner<E>>>;
+
+  // @ts-ignore TODO: fix this
+  registerPod(result, pod);
+
+  return result;
 }
 
 export function verify(pod: EdDSAPodData<Entries>): boolean {
@@ -98,13 +124,17 @@ export function verify(pod: EdDSAPodData<Entries>): boolean {
   if (rootHash !== pod.id) {
     return false;
   }
-  return verifyBackend(rootHash, pod.signature, pod.signer);
+  return verifyBackend(
+    rootHash,
+    unpackSignature(Buffer.from(pod.signature, "hex")),
+    unpackPublicKey(leBufferToBigInt(Buffer.from(pod.signer, "hex")))
+  );
 }
 
 if (import.meta.vitest) {
   const { test, describe, expect, bench } = import.meta.vitest;
 
-  function getCommitment(value: ContainerValue): bigint {
+  function getCommitment(value: SignedContainerValue): bigint {
     if (containerInterning.has(value)) {
       return containerInterning.get(value)!.commitment();
     } else {

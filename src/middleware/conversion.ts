@@ -1,11 +1,16 @@
 import { POD2Set, POD2Array, POD2Dictionary } from "./containers.js";
-import type { ContainerValue, EntryValue } from "../frontends/eddsa_signed.js";
+import type {
+  ContainerValue,
+  EntryValue,
+  SignedContainerValue,
+  SignedEntryValue
+} from "../frontends/eddsa_signed.js";
 import { hashString } from "./shared.js";
 
-export const containerInterning = new WeakMap<
-  ContainerValue,
+export const containerInterning: WeakMap<
+  SignedContainerValue,
   POD2Set | POD2Array | POD2Dictionary
->();
+> = new WeakMap();
 
 function toBackendSet(set: Set<EntryValue>): POD2Set {
   const values = Array.from(set).map((value) => toBackendValue(value));
@@ -27,7 +32,10 @@ function toBackendDictionary(dict: Record<string, EntryValue>): POD2Dictionary {
   return new POD2Dictionary(values);
 }
 
-export function toBackendValue(value: EntryValue, skipCache = false): bigint {
+export function toBackendValue(
+  value: EntryValue | SignedEntryValue,
+  skipCache = false
+): bigint {
   if (typeof value === "string") {
     return BigInt("0x" + hashString(value));
   }
