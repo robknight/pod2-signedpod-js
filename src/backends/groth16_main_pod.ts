@@ -12,7 +12,12 @@ import {
   type MiddlewareStatementArg
 } from "../middleware/statements.js";
 import { toBackendValue } from "../middleware/conversion.js";
-import { type CircuitSignals, groth16 } from "snarkjs";
+import {
+  type CircuitSignals,
+  groth16,
+  type Groth16Proof,
+  type PublicSignals
+} from "snarkjs";
 
 export const SELF = 1n;
 
@@ -101,18 +106,12 @@ export class Groth16MainPod {
     const inputSignedPods = inputs.signedPods.map((pod) =>
       BackendEdDSASignedPod.fromFrontend(pod)
     );
-    const inputMainPods = [];
-    const inputStatements = inputs.statements;
-
-    console.log("statements", statements.length);
-    console.log("max_public_statements", this.params.max_public_statements);
-    console.log("offsetPublicStatements", this.offsetPublicStatements());
 
     const publicStatements = statements.slice(
       statements.length - this.params.max_public_statements - 1
     );
 
-    this.id = 1337n; // TODO: generate id
+    this.id = 1337n; // TODO: generate id from hash of statements
     this.inputSignedPods = inputSignedPods;
     this.statements = statements;
     this.publicStatements = publicStatements;
@@ -292,7 +291,7 @@ export class Groth16MainPod {
   ): BackendOperation[] {
     const offsetPublicStatements =
       statements.length - this.params.max_public_statements;
-    operations.push(new BackendOperation("NewEntry", []));
+    //operations.push(new BackendOperation("NewEntry", []));
 
     for (let i = 0; i < this.params.max_public_statements - 1; i++) {
       const st = statements[offsetPublicStatements + i + 1]!;
@@ -437,18 +436,20 @@ export class Groth16MainPod {
     return signals;
   }
 
-  public async prove(): Promise<void> {
+  public async prove(): Promise<{
+    proof: Groth16Proof;
+    publicSignals: PublicSignals;
+  }> {
     const signals = this.toCircuitSignals();
+    // TODO better management of circuit assets
     const circuitPath = import.meta.dirname + "/../../build/groth16_pod/";
-    console.log(circuitPath);
-    const start = performance.now();
     const proof = await groth16.fullProve(
       signals,
       circuitPath + "groth16_pod_js/groth16_pod.wasm",
       circuitPath + "groth16_pkey.zkey"
     );
-    const end = performance.now();
-    console.log(proof);
-    console.log(`Time taken: ${end - start} milliseconds`);
+    return proof;
   }
+
+  // TODO verify proof by reconstructing expected public signals from statements
 }

@@ -12,15 +12,14 @@ import {
   derivePublicKey,
   packPublicKey,
   unpackPublicKey,
-  unpackSignature,
-  type Signature
+  unpackSignature
 } from "@zk-kit/eddsa-poseidon";
 import { leBigIntToBuffer, leBufferToBigInt } from "@zk-kit/utils";
 import type { Evaluate } from "../utils/types.js";
 import { Buffer } from "buffer";
 import { registerPod } from "../middleware/pods.js";
 
-export type Scalar = string | bigint;
+export type Scalar = string | bigint | number;
 export type Recursive<T> = T | RecursiveContainer<T>;
 export type RecursiveContainer<T> =
   | Set<Recursive<T>>
@@ -148,6 +147,7 @@ if (import.meta.vitest) {
     test("foo", () => {
       const pod = sign(
         {
+          num: 234,
           foo: "foo",
           bar: "bar",
           baz: "baz",
@@ -161,7 +161,7 @@ if (import.meta.vitest) {
               adipiscing: "elit",
               lol: ["hi", "there"]
             },
-            xxx: 1337n
+            xyz: 1337n
           },
           urgh: new Set([BigInt("0xdeadbeef"), 0n, "baz", ["hi", "there"]])
         } satisfies Entries,

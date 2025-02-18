@@ -35,7 +35,7 @@ import { toBackendValue } from "../middleware/conversion.js";
 //   all_statements: Statement[]; // why?
 // }
 
-const DEFAULT_PARAMS: Params = {
+export const DEFAULT_PARAMS: Params = {
   max_input_signed_pods: 2,
   max_input_main_pods: 3,
   // Meaning additional statements beyond the input statements from signed Pods:

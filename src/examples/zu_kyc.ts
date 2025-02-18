@@ -1,5 +1,5 @@
 import { sign } from "../frontends/eddsa_signed.js";
-import { MainPodBuilder } from "../frontends/groth16_main.js";
+import { DEFAULT_PARAMS, MainPodBuilder } from "../frontends/groth16_main.js";
 import {
   AnchoredKey,
   Operation,
@@ -44,19 +44,24 @@ async function zuKycExample() {
     ])
   );
 
-  // console.dir(mainPod, { depth: null });
-
-  // mainPod.print();
-
+  // I think I've modelled the "prover" trait incorrectly here.
+  // What is the final act of the builder? build()?
   const mainPod = mainPodBuilder.prove();
-  console.log(mainPod.verify());
-  console.log(await mainPod.prove());
+  return mainPod.prove();
 }
 
 if (import.meta.vitest) {
   const { test, expect } = import.meta.vitest;
 
   test("zuKycExample", async () => {
-    await zuKycExample();
+    const { proof, publicSignals } = await zuKycExample();
+    // For ease of debugging, all statements are public
+    const firstOperationStatementIndex =
+      DEFAULT_PARAMS.max_input_signed_pods *
+      DEFAULT_PARAMS.max_signed_pod_values;
+    // We only have one statement, an Equal statement produced by our
+    // EqualFromEntries operation.
+    // The values are equal so this should be 1.
+    expect(BigInt(publicSignals[firstOperationStatementIndex]!)).toBe(1n);
   });
 }

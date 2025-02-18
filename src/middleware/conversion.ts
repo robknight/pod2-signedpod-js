@@ -44,6 +44,10 @@ export function toBackendValue(
     return value;
   }
 
+  if (typeof value === "number") {
+    return BigInt(value);
+  }
+
   if (!Object.isFrozen(value)) {
     throw new Error("Cannot convert mutable object to backend value");
   }
